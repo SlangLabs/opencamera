@@ -80,6 +80,10 @@ import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.ZoomControls;
 
+import com.slanglabs.slang.SlangClient;
+import com.slanglabs.slang.SlangError;
+import com.slanglabs.slang.SlangIntentMapper;
+
 /** The main Activity for Open Camera.
  */
 public class MainActivity extends Activity implements AudioListener.AudioListenerCallback {
@@ -389,6 +393,72 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
             }
         }).start();
 
+		final MainActivity that = this;
+
+		// Slang Labs Intent Mapper
+		SlangIntentMapper.add(new String[]{"intent_capture"}, new SlangIntentMapper.Callback() {
+			@Override
+			public void onIntentDetected(
+				Context context,
+				String intent,
+				Map<String, String> entities
+			) {
+				Preview.PreviewPrefs localPrefs = new Preview.PreviewPrefs();
+
+				if (entities.containsKey("duration")) {
+					int duration = Integer.parseInt(entities.get("duration"));
+
+					localPrefs.timer_delay = duration;
+				}
+
+				if (entities.containsKey("camera_source")) {
+					String source = entities.get("camera_source");
+
+					if (source == "front") {
+						for(int i=0;i<preview.getCameraControllerManager().getNumberOfCameras();i++) {
+							if( preview.getCameraControllerManager().isFrontFacing(i) ) {
+								if (MyDebug.LOG)
+									Log.d(TAG, "found front camera: " + i);
+								applicationInterface.setCameraIdPref(i);
+								break;
+							}
+						}
+					} else {
+						for(int i=0;i<preview.getCameraControllerManager().getNumberOfCameras();i++) {
+							if( !preview.getCameraControllerManager().isFrontFacing(i) ) {
+								if (MyDebug.LOG)
+									Log.d(TAG, "found back camera: " + i);
+								applicationInterface.setCameraIdPref(i);
+								break;
+							}
+						}
+					}
+				}
+
+				that.takePicture(localPrefs);
+			}
+		});
+
+		// Create a local Client object
+		new SlangClient(this)
+			.setKey("3dd1f449-d4d0-4389-b64f-821a9982d61b")
+			.startAsync(new SlangClient.Listener() {
+				@Override
+				public void onStart(Context context) {
+					// Nothing to do for now
+				}
+
+				@Override
+				public void onTrigger(Context context) {
+					// The voice interaction has been started
+				}
+
+				@Override
+				public void onError(final Context context, final SlangError error) {
+					Log.e(TAG, "got error from slang - " + error.description);
+				}
+			});
+
 		if( MyDebug.LOG )
 			Log.d(TAG, "onCreate: total time for Activity startup: " + (System.currentTimeMillis() - debug_time));
 	}
@@ -695,7 +765,7 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 				public void run() {
 					if( MyDebug.LOG )
 						Log.d(TAG, "taking picture due to audio trigger");
-					takePicture();
+					takePicture(null);
 				}
 			});
 		}
@@ -850,7 +920,7 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
     public void clickedTakePhoto(View view) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "clickedTakePhoto");
-    	this.takePicture();
+    	this.takePicture(null);
     }
 
 	public void clickedPauseVideo(View view) {
@@ -2171,7 +2241,7 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 	/** User has pressed the take picture button, or done an equivalent action to request this (e.g.,
 	 *  volume buttons, audio trigger).
 	 */
-    public void takePicture() {
+    public void takePicture(Preview.PreviewPrefs localPrefs) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "takePicture");
 
@@ -2188,10 +2258,10 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 			}
 		}
 
-		this.takePicturePressed();
+		this.takePicturePressed(localPrefs);
     }
 
-    void takePicturePressed() {
+    void takePicturePressed(Preview.PreviewPrefs localPrefs) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "takePicturePressed");
 
@@ -2203,7 +2273,7 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 			applicationInterface.setNextPanoramaPoint();
 		}
 
-    	this.preview.takePicturePressed();
+    	this.preview.takePicturePressed(null);
 	}
     
     /** Lock the screen - this is Open Camera's own lock to guard against accidental presses,
