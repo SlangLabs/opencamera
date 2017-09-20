@@ -540,7 +540,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 			if( MyDebug.LOG )
 				Log.d(TAG, "touch to capture");
 			// interpret as if user had clicked take photo/video button, except that we set the focus/metering areas
-	    	this.takePicturePressed();
+	    	this.takePicturePressed(null);
 	    	return true;
 		}
 
@@ -569,7 +569,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 			if( MyDebug.LOG )
 				Log.d(TAG, "double-tap to capture");
 			// interpret as if user had clicked take photo/video button (don't need to set focus/metering, as this was done in touchEvent() for the first touch of the double-tap)
-	    	takePicturePressed();
+	    	takePicturePressed(null);
 		}
 		return true;
 	}
@@ -3754,9 +3754,13 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 		}
 	}
 
+	public static class PreviewPrefs {
+		public int timer_delay = 0;
+	}
+
 	/** User has clicked the "take picture" button (or equivalent GUI operation).
 	 */
-	public void takePicturePressed() {
+	public void takePicturePressed(PreviewPrefs localPrefs) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "takePicturePressed");
 		if( camera_controller == null ) {
@@ -3810,7 +3814,8 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         this.startCameraPreview();
 
         //is_taking_photo = true;
-		long timer_delay = applicationInterface.getTimerPref();
+		long timer_delay = localPrefs != null && localPrefs.timer_delay != 0 ?
+			localPrefs.timer_delay : applicationInterface.getTimerPref();
 
 		String burst_mode_value = applicationInterface.getRepeatPref();
 		if( burst_mode_value.equals("unlimited") ) {

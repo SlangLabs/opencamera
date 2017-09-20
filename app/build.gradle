@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "25.0.0"
+    buildToolsVersion '25.0.0'
     compileOptions.encoding = 'UTF-8'
 
     defaultConfig {
@@ -32,5 +32,7 @@ android {
 
 dependencies {
     compile 'com.android.support:support-v4:24.0.0'
+    // Slang Labs
+    compile project(':slangclient_lib')
     testCompile 'junit:junit:4.12'
 }
