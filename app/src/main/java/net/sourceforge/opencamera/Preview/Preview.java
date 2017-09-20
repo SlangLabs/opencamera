@@ -955,6 +955,10 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 		void onClosed();
 	}
 
+	private interface OpenCameraCallback {
+		void onOpened();
+	}
+
 	private class CloseCameraTask extends AsyncTask<Void, Void, Void> {
 		private static final String TAG = "CloseCameraTask";
 
@@ -3134,8 +3138,12 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 			return false;
 		return true;
 	}
-	
+
 	public void setCamera(int cameraId) {
+		setCamera(cameraId, null);
+	}
+
+	public void setCamera(int cameraId, OpenCameraCallback callback) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "setCamera(): " + cameraId);
 		if( cameraId < 0 || cameraId >= camera_controller_manager.getNumberOfCameras() ) {
@@ -3756,23 +3764,28 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 
 	public static class PreviewPrefs {
 		public int timer_delay = 0;
+		public boolean take_photo = false;
+		public String camera_source = null;
 	}
 
 	/** User has clicked the "take picture" button (or equivalent GUI operation).
 	 */
 	public void takePicturePressed(PreviewPrefs localPrefs) {
-		if( MyDebug.LOG )
+		if (localPrefs != null) {
+			Log.d(TAG, "timer set - " + localPrefs.timer_delay);
+		}
+		if (MyDebug.LOG)
 			Log.d(TAG, "takePicturePressed");
-		if( camera_controller == null ) {
-			if( MyDebug.LOG )
+		if (camera_controller == null) {
+			if (MyDebug.LOG)
 				Log.d(TAG, "camera not opened!");
 			/*is_taking_photo_on_timer = false;
 			is_taking_photo = false;*/
 			this.phase = PHASE_NORMAL;
 			return;
 		}
-		if( !this.has_surface ) {
-			if( MyDebug.LOG )
+		if (!this.has_surface) {
+			if (MyDebug.LOG)
 				Log.d(TAG, "preview surface not yet available");
 			/*is_taking_photo_on_timer = false;
 			is_taking_photo = false;*/
@@ -3780,65 +3793,92 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 			return;
 		}
 		//if( is_taking_photo_on_timer ) {
-		if( this.isOnTimer() ) {
+		if (this.isOnTimer()) {
 			cancelTimer();
-		    showToast(take_photo_toast, R.string.cancelled_timer);
+			showToast(take_photo_toast, R.string.cancelled_timer);
 			return;
 		}
-    	//if( is_taking_photo ) {
-		if( this.phase == PHASE_TAKING_PHOTO ) {
-    		if( is_video ) {
-    			if( !video_start_time_set || System.currentTimeMillis() - video_start_time < 500 ) {
-    				// if user presses to stop too quickly, we ignore
-    				// firstly to reduce risk of corrupt video files when stopping too quickly (see RuntimeException we have to catch in stopVideo),
-    				// secondly, to reduce a backlog of events which slows things down, if user presses start/stop repeatedly too quickly
-    	    		if( MyDebug.LOG )
-    	    			Log.d(TAG, "ignore pressing stop video too quickly after start");
-    			}
-    			else {
-    				stopVideo(false);
-    			}
-    		}
-    		else {
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "already taking a photo");
-    			if( remaining_burst_photos != 0 ) {
-    				remaining_burst_photos = 0;
-    			    showToast(take_photo_toast, R.string.cancelled_burst_mode);
-    			}
-    		}
-    		return;
-    	}
+		//if( is_taking_photo ) {
+		if (this.phase == PHASE_TAKING_PHOTO) {
+			if (is_video) {
+				if (!video_start_time_set || System.currentTimeMillis() - video_start_time < 500) {
+					// if user presses to stop too quickly, we ignore
+					// firstly to reduce risk of corrupt video files when stopping too quickly (see RuntimeException we have to catch in stopVideo),
+					// secondly, to reduce a backlog of events which slows things down, if user presses start/stop repeatedly too quickly
+					if (MyDebug.LOG)
+						Log.d(TAG, "ignore pressing stop video too quickly after start");
+				} else {
+					stopVideo(false);
+				}
+			} else {
+				if (MyDebug.LOG)
+					Log.d(TAG, "already taking a photo");
+				if (remaining_burst_photos != 0) {
+					remaining_burst_photos = 0;
+					showToast(take_photo_toast, R.string.cancelled_burst_mode);
+				}
+			}
+			return;
+		}
 
-    	// make sure that preview running (also needed to hide trash/share icons)
-        this.startCameraPreview();
+		// make sure that preview running (also needed to hide trash/share icons)
+		this.startCameraPreview();
 
-        //is_taking_photo = true;
+		//is_taking_photo = true;
 		long timer_delay = localPrefs != null && localPrefs.timer_delay != 0 ?
 			localPrefs.timer_delay : applicationInterface.getTimerPref();
 
 		String burst_mode_value = applicationInterface.getRepeatPref();
-		if( burst_mode_value.equals("unlimited") ) {
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "unlimited burst");
+		if (burst_mode_value.equals("unlimited")) {
+			if (MyDebug.LOG)
+				Log.d(TAG, "unlimited burst");
 			remaining_burst_photos = -1;
-		}
-		else {
+		} else {
 			int n_burst;
 			try {
 				n_burst = Integer.parseInt(burst_mode_value);
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "n_burst: " + n_burst);
+				if (MyDebug.LOG)
+					Log.d(TAG, "n_burst: " + n_burst);
+			} catch (NumberFormatException e) {
+				if (MyDebug.LOG)
+					Log.e(TAG, "failed to parse preference_burst_mode value: " + burst_mode_value);
+				e.printStackTrace();
+				n_burst = 1;
 			}
-	        catch(NumberFormatException e) {
-	    		if( MyDebug.LOG )
-	    			Log.e(TAG, "failed to parse preference_burst_mode value: " + burst_mode_value);
-	    		e.printStackTrace();
-	    		n_burst = 1;
-	        }
-			remaining_burst_photos = n_burst-1;
+			remaining_burst_photos = n_burst - 1;
 		}
-		
+
+		if (localPrefs != null && localPrefs.camera_source != null) {
+			if (localPrefs.camera_source.equalsIgnoreCase("front")) {
+				for (int i = 0; i < getCameraControllerManager().getNumberOfCameras(); i++) {
+					if (getCameraControllerManager().isFrontFacing(i)) {
+						if (MyDebug.LOG)
+							Log.d(TAG, "found front camera: " + i);
+						setCamera(i, new OpenCameraCallback() {
+							@Override
+							public void onOpened() {
+
+							}
+						});
+						break;
+					}
+				}
+			} else {
+				for (int i = 0; i < getCameraControllerManager().getNumberOfCameras(); i++) {
+					if (!getCameraControllerManager().isFrontFacing(i)) {
+						if (MyDebug.LOG)
+							Log.d(TAG, "found back camera: " + i);
+						setCamera(i);
+						break;
+					}
+				}
+			}
+		}
+
+		takePictureWithPotentialDelay(timer_delay);
+	}
+
+	private void takePictureWithPotentialDelay(long timer_delay) {
 		if( timer_delay == 0 ) {
 			takePicture(false);
 		}

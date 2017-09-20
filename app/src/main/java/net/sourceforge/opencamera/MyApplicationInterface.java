@@ -992,7 +992,7 @@ public class MyApplicationInterface implements ApplicationInterface {
 				if( MyDebug.LOG )
 					Log.d(TAG, "TargetCallback.onAchieved");
 				clearPanoramaPoint();
-				main_activity.takePicturePressed();
+				main_activity.takePicturePressed(null);
 			}
 		});
 		drawPreview.setGyroDirectionMarker(x, y, z);

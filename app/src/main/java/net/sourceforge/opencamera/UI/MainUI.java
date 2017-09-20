@@ -1136,13 +1136,13 @@ public class MainUI {
 
 				switch(volume_keys) {
 					case "volume_take_photo":
-						main_activity.takePicture();
+						main_activity.takePicture(null);
 						return true;
 					case "volume_focus":
 						if(keydown_volume_up && keydown_volume_down) {
 							if (MyDebug.LOG)
 								Log.d(TAG, "take photo rather than focus, as both volume keys are down");
-							main_activity.takePicture();
+							main_activity.takePicture(null);
 						}
 						else if (main_activity.getPreview().getCurrentFocusValue() != null && main_activity.getPreview().getCurrentFocusValue().equals("focus_mode_manual2")) {
 							if(keyCode == KeyEvent.KEYCODE_VOLUME_UP)
@@ -1220,7 +1220,7 @@ public class MainUI {
 			case KeyEvent.KEYCODE_CAMERA:
 			{
 				if( event.getRepeatCount() == 0 ) {
-					main_activity.takePicture();
+					main_activity.takePicture(null);
 					return true;
 				}
 			}

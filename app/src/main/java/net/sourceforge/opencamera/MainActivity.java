@@ -403,10 +403,27 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 				String intent,
 				Map<String, String> entities
 			) {
-				Preview.PreviewPrefs localPrefs = new Preview.PreviewPrefs();
+				switch (intent) {
+					case "INTENT_CAPTURE":
+						takePhoto(entities);
+						break;
 
-				if (entities.containsKey("duration")) {
-					int duration = Integer.parseInt(entities.get("duration"));
+				}
+			}
+
+			private void takePhoto(Map<String, String> entities) {
+				final Preview.PreviewPrefs localPrefs = new Preview.PreviewPrefs();
+
+				if (entities.containsKey("duration-amount")) {
+					String duration_unit = entities.get("duration-unit");
+
+					int duration = Integer.parseInt(entities.get("duration-amount"));
+
+					switch (duration_unit) {
+						case "s":
+							duration *= 1000; // seconds
+							break;
+					}
 
 					localPrefs.timer_delay = duration;
 				}
@@ -414,28 +431,36 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 				if (entities.containsKey("camera_source")) {
 					String source = entities.get("camera_source");
 
-					if (source == "front") {
-						for(int i=0;i<preview.getCameraControllerManager().getNumberOfCameras();i++) {
-							if( preview.getCameraControllerManager().isFrontFacing(i) ) {
+					if (source.equalsIgnoreCase("front")) {
+						for (int i = 0; i < preview.getCameraControllerManager().getNumberOfCameras(); i++) {
+							if (preview.getCameraControllerManager().isFrontFacing(i)) {
 								if (MyDebug.LOG)
 									Log.d(TAG, "found front camera: " + i);
-								applicationInterface.setCameraIdPref(i);
+								preview.setCamera(i);
 								break;
 							}
 						}
 					} else {
-						for(int i=0;i<preview.getCameraControllerManager().getNumberOfCameras();i++) {
-							if( !preview.getCameraControllerManager().isFrontFacing(i) ) {
+						for (int i = 0; i < preview.getCameraControllerManager().getNumberOfCameras(); i++) {
+							if (!preview.getCameraControllerManager().isFrontFacing(i)) {
 								if (MyDebug.LOG)
 									Log.d(TAG, "found back camera: " + i);
-								applicationInterface.setCameraIdPref(i);
+								preview.setCamera(i);
 								break;
 							}
 						}
 					}
-				}
+					final Handler handler = new Handler();
 
-				that.takePicture(localPrefs);
+					handler.postDelayed(new Runnable() {
+						@Override
+						public void run() {
+							that.takePicture(localPrefs);
+						}
+					}, 1000);
+				} else {
+					that.takePicture(localPrefs);
+				}
 			}
 		});
 
@@ -2273,7 +2298,7 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 			applicationInterface.setNextPanoramaPoint();
 		}
 
-    	this.preview.takePicturePressed(null);
+    	this.preview.takePicturePressed(localPrefs);
 	}
     
     /** Lock the screen - this is Open Camera's own lock to guard against accidental presses,
