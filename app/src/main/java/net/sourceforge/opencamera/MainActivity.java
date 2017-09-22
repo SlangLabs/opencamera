@@ -396,76 +396,124 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 		final MainActivity that = this;
 
 		// Slang Labs Intent Mapper
-		SlangIntentMapper.add(new String[]{"intent_capture"}, new SlangIntentMapper.Callback() {
-			@Override
-			public void onIntentDetected(
-				Context context,
-				String intent,
-				Map<String, String> entities
-			) {
-				switch (intent) {
-					case "INTENT_CAPTURE":
-						takePhoto(entities);
-						break;
+		SlangIntentMapper.add(
+			new String[]{"intent_capture", "intent_preview", "intent_delete"},
+			new SlangIntentMapper.Callback() {
+				@Override
+				public void onIntentDetected(
+					Context context,
+					String intent,
+					Map<String, String> entities
+				) {
+					switch (intent) {
+						case "INTENT_CAPTURE":
+							switchCameraAndTakePhoto(entities);
+							break;
 
-				}
-			}
+						case "INTENT_PREVIEW":
+							clickedGallery(null);
+							break;
 
-			private void takePhoto(Map<String, String> entities) {
-				final Preview.PreviewPrefs localPrefs = new Preview.PreviewPrefs();
-
-				if (entities.containsKey("duration-amount")) {
-					String duration_unit = entities.get("duration-unit");
-
-					int duration = Integer.parseInt(entities.get("duration-amount"));
-
-					switch (duration_unit) {
-						case "s":
-							duration *= 1000; // seconds
+						case "INTENT_DELETE":
+							clickedTrash(null);
 							break;
 					}
-
-					localPrefs.timer_delay = duration;
 				}
 
-				if (entities.containsKey("camera_source")) {
-					String source = entities.get("camera_source");
+				private void switchCameraAndTakePhoto(final Map<String, String> entities) {
+					if (entities.containsKey("camera_source")) {
+						String source = entities.get("camera_source");
+						final Handler handler = new Handler();
 
-					if (source.equalsIgnoreCase("front")) {
-						for (int i = 0; i < preview.getCameraControllerManager().getNumberOfCameras(); i++) {
-							if (preview.getCameraControllerManager().isFrontFacing(i)) {
-								if (MyDebug.LOG)
-									Log.d(TAG, "found front camera: " + i);
-								preview.setCamera(i);
-								break;
+						if (source.equalsIgnoreCase("front") && !preview.getCameraControllerManager().isFrontFacing(preview.getCameraId())) {
+							for (int i = 0; i < preview.getCameraControllerManager().getNumberOfCameras(); i++) {
+								if (preview.getCameraControllerManager().isFrontFacing(i)) {
+									if (MyDebug.LOG)
+										Log.d(TAG, "found front camera: " + i);
+									preview.setCamera(i);
+									handler.postDelayed(new Runnable() {
+										@Override
+										public void run() {
+											takePhotoOrVideo(entities);
+										}
+									}, 1000);
+									return;
+								}
 							}
-						}
-					} else {
-						for (int i = 0; i < preview.getCameraControllerManager().getNumberOfCameras(); i++) {
-							if (!preview.getCameraControllerManager().isFrontFacing(i)) {
-								if (MyDebug.LOG)
-									Log.d(TAG, "found back camera: " + i);
-								preview.setCamera(i);
-								break;
+						} else if (source.equalsIgnoreCase("back") && preview.getCameraControllerManager().isFrontFacing(preview.getCameraId())) {
+							for (int i = 0; i < preview.getCameraControllerManager().getNumberOfCameras(); i++) {
+								if (!preview.getCameraControllerManager().isFrontFacing(i)) {
+									if (MyDebug.LOG)
+										Log.d(TAG, "found back camera: " + i);
+									preview.setCamera(i);
+									handler.postDelayed(new Runnable() {
+										@Override
+										public void run() {
+											takePhotoOrVideo(entities);
+										}
+									}, 1000);
+									return;
+								}
 							}
 						}
 					}
-					final Handler handler = new Handler();
+					takePhotoOrVideo(entities);
+				}
 
-					handler.postDelayed(new Runnable() {
-						@Override
-						public void run() {
-							that.takePicture(localPrefs);
+				private void takePhotoOrVideo(final Map<String, String> entities) {
+					if (entities.containsKey("photo_type")) {
+						String source = entities.get("photo_type");
+						final Handler handler = new Handler();
+
+						if (source.equalsIgnoreCase("video") && !preview.isVideo()) {
+							clickedSwitchVideo(null);
+							handler.postDelayed(new Runnable() {
+								@Override
+								public void run() {
+									takeShot(entities);
+								}
+							}, 1000);
+							return;
+						} else if (preview.isVideo()) {
+							clickedSwitchCamera(null);
+							handler.postDelayed(new Runnable() {
+								@Override
+								public void run() {
+									takeShot(entities);
+								}
+							}, 1000);
+							return;
 						}
-					}, 1000);
-				} else {
+					}
+
+					takeShot(entities);
+				}
+
+				private void takeShot(Map<String, String> entities) {
+					final Preview.PreviewPrefs localPrefs = new Preview.PreviewPrefs();
+
+					if (entities.containsKey("duration-amount")) {
+						String duration_unit = entities.get("duration-unit");
+
+						int duration = Integer.parseInt(entities.get("duration-amount"));
+
+						switch (duration_unit) {
+							case "s":
+								duration *= 1000; // seconds
+								break;
+						}
+
+						localPrefs.timer_delay = duration;
+					}
+
 					that.takePicture(localPrefs);
 				}
 			}
-		});
+		);
 
 		// Create a local Client object
 		new SlangClient(this)
+			.setMode(SlangClient.SlangMode.LOCAL)
 			.setKey("3dd1f449-d4d0-4389-b64f-821a9982d61b")
 			.startAsync(new SlangClient.Listener() {
 				@Override
