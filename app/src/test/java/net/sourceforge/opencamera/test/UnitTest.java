@@ -4,7 +4,9 @@ import android.media.CamcorderProfile;
 
 import net.sourceforge.opencamera.CameraController.CameraController;
 import net.sourceforge.opencamera.CameraController.CameraController2;
+import net.sourceforge.opencamera.ImageSaver;
 import net.sourceforge.opencamera.LocationSupplier;
+import net.sourceforge.opencamera.MainActivity;
 import net.sourceforge.opencamera.Preview.Preview;
 import net.sourceforge.opencamera.Preview.VideoQualityHandler;
 import net.sourceforge.opencamera.TextFormatter;
@@ -109,7 +111,7 @@ public class UnitTest {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
 		Date date1 = sdf.parse("2017/01/31");
 		assertEquals( TextFormatter.getDateString("preference_stamp_dateformat_none", date1), "" );
-		assertEquals( TextFormatter.getDateString("preference_stamp_dateformat_yyyymmdd", date1), "2017/01/31" );
+		assertEquals( TextFormatter.getDateString("preference_stamp_dateformat_yyyymmdd", date1), "2017-01-31" );
 		assertEquals( TextFormatter.getDateString("preference_stamp_dateformat_ddmmyyyy", date1), "31/01/2017" );
 		assertEquals( TextFormatter.getDateString("preference_stamp_dateformat_mmddyyyy", date1), "01/31/2017" );
 	}
@@ -386,6 +388,53 @@ public class UnitTest {
 		compareVideoQuality(video_quality, exp_video_quality);
 	}
 
+	/** Tests for Preview.getOptimalVideoPictureSize().
+	 *  Tests the choice of photo snapshot resolutions in video mode.
+	 */
+	@Test
+	public void testVideoPhotoResolution() {
+		Log.d(TAG, "testVideoPhotoResolution");
+
+		List<CameraController.Size> sizes = new ArrayList<>();
+		sizes.add(new CameraController.Size(4640, 3480));
+		sizes.add(new CameraController.Size(4640, 2610));
+		sizes.add(new CameraController.Size(3488, 3488));
+		sizes.add(new CameraController.Size(3840, 2160));
+		sizes.add(new CameraController.Size(3456, 3456));
+		sizes.add(new CameraController.Size(1920, 1080));
+		sizes.add(new CameraController.Size(1728, 1728));
+		sizes.add(new CameraController.Size(1440, 1080));
+
+		CameraController.Size max_video_size1 = new CameraController.Size(3840, 2160);
+
+		CameraController.Size photo_size1 = Preview.getOptimalVideoPictureSize(sizes, 16.0f/9.0f, max_video_size1);
+		Log.d(TAG, "photo_size1: " + photo_size1.width + " x " + photo_size1.height);
+		assertTrue( photo_size1.equals(new CameraController.Size(3840, 2160)) );
+
+		CameraController.Size photo_size1b = Preview.getOptimalVideoPictureSize(sizes, 1.0f, max_video_size1);
+		Log.d(TAG, "photo_size1b: " + photo_size1b.width + " x " + photo_size1b.height);
+		assertTrue( photo_size1b.equals(new CameraController.Size(1728, 1728)) );
+
+		CameraController.Size photo_size1c = Preview.getOptimalVideoPictureSize(sizes, 4.0f/3.0f, max_video_size1);
+		Log.d(TAG, "photo_size1c: " + photo_size1c.width + " x " + photo_size1c.height);
+		assertTrue( photo_size1c.equals(new CameraController.Size(1440, 1080)) );
+
+		CameraController.Size max_video_size2 = new CameraController.Size(1920, 1080);
+
+		CameraController.Size photo_size2 = Preview.getOptimalVideoPictureSize(sizes, 16.0f/9.0f, max_video_size2);
+		Log.d(TAG, "photo_size2: " + photo_size2.width + " x " + photo_size2.height);
+		assertTrue( photo_size2.equals(new CameraController.Size(1920, 1080)) );
+
+		CameraController.Size photo_size2b = Preview.getOptimalVideoPictureSize(sizes, 1.0f, max_video_size2);
+		Log.d(TAG, "photo_size2b: " + photo_size2b.width + " x " + photo_size2b.height);
+		assertTrue( photo_size2b.equals(new CameraController.Size(1440, 1080)) );
+
+		CameraController.Size photo_size2c = Preview.getOptimalVideoPictureSize(sizes, 4.0f/3.0f, max_video_size2);
+		Log.d(TAG, "photo_size2c: " + photo_size2c.width + " x " + photo_size2c.height);
+		assertTrue( photo_size2c.equals(new CameraController.Size(1440, 1080)) );
+
+	}
+
 	@Test
 	public void testScaleForExposureTime() {
 		Log.d(TAG, "testScaleForExposureTime");
@@ -402,6 +451,13 @@ public class UnitTest {
 	}
 
 	@Test
+	public void testExponentialScaling() {
+		Log.d(TAG, "testExponentialScaling");
+		assertEquals(100, (int)MainActivity.exponentialScaling(0.0f, 100, 1600));
+		assertEquals(1600, (int)MainActivity.exponentialScaling(1.0f, 100, 1600));
+	}
+
+	@Test
 	public void testFormatLevelAngle() {
 		Log.d(TAG, "testFormatLevelAngle");
 
@@ -413,5 +469,32 @@ public class UnitTest {
 		assertEquals( "0.0", DrawPreview.formatLevelAngle(-0.0001));
 		assertEquals( "-0.1", DrawPreview.formatLevelAngle(-0.1));
 		assertEquals( "-10.7", DrawPreview.formatLevelAngle(-10.6753));
+	}
+
+	@Test
+	public void testImageSaverQueueSize() {
+		Log.d(TAG, "testImageSaverQueueSize");
+
+		// if any of these values change, review the comments in ImageSaver.getQueueSize().
+
+		assertTrue(ImageSaver.computeQueueSize(64) >= 6);
+
+		assertTrue(ImageSaver.computeQueueSize(128) >= ImageSaver.computeQueueSize(64));
+
+		assertTrue(ImageSaver.computeQueueSize(256) >= ImageSaver.computeQueueSize(128));
+		assertTrue(ImageSaver.computeQueueSize(256) <= 19);
+
+		assertTrue(ImageSaver.computeQueueSize(512) >= ImageSaver.computeQueueSize(256));
+		assertTrue(ImageSaver.computeQueueSize(512) >= 34);
+		assertTrue(ImageSaver.computeQueueSize(512) <= 70);
+	}
+
+	@Test
+	public void testImageSaverRequestCost() {
+		Log.d(TAG, "testImageSaverRequestCost");
+
+		assertTrue( ImageSaver.computeRequestCost(true, 0) > ImageSaver.computeRequestCost(false, 1));
+		assertEquals( ImageSaver.computeRequestCost(false, 3), 3*ImageSaver.computeRequestCost(false, 1));
+
 	}
 }

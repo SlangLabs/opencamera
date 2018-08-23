@@ -25,6 +25,19 @@
         />
 
     <ImageButton
+        android:id="@+id/switch_camera"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:padding="5dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/switch_to_front_camera"
+        android:src="@drawable/switch_camera"
+        android:onClick="clickedSwitchCamera"
+        android:layout_above="@+id/take_photo"
+        android:background="@drawable/circle_background"
+        />
+
+    <ImageButton
         android:id="@+id/pause_video"
         android:layout_width="70dp"
         android:layout_height="70dp"
@@ -35,6 +48,35 @@
         android:onClick="clickedPauseVideo"
         android:layout_above="@+id/take_photo"
         android:background="@null"
+        android:visibility="gone"
+        />
+
+    <ImageButton
+        android:id="@+id/switch_video"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/switch_to_video"
+        android:src="@drawable/take_video"
+        android:alpha="0.5"
+        android:onClick="clickedSwitchVideo"
+        android:layout_below="@+id/take_photo"
+        android:background="@null"
+        />
+
+    <ImageButton
+        android:id="@+id/take_photo_when_video_recording"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/take_photo"
+        android:src="@drawable/take_photo_when_video_recording"
+        android:onClick="clickedTakePhotoVideoSnapshot"
+        android:layout_below="@+id/take_photo"
+        android:background="@null"
+        android:visibility="gone"
         />
 
     <ZoomControls
@@ -65,7 +107,7 @@
         android:layout_marginRight="10dp"
         android:layout_marginTop="0dp"
         android:layout_marginBottom="0dp"
-        android:visibility="invisible"
+        android:visibility="gone"
         android:background="@color/seekbar_background"
         />
     
@@ -75,6 +117,7 @@
         android:layout_height="0dp"
         android:padding="1dp"
         android:scaleType="fitCenter"
+        android:visibility="invisible"
         />
 
     <ImageButton
@@ -132,7 +175,7 @@
         android:onClick="clickedExposure"
         />
 
-    <ImageButton
+    <!--<ImageButton
         android:id="@+id/switch_video"
         android:layout_width="50dp"
         android:layout_height="50dp"
@@ -141,9 +184,9 @@
         android:contentDescription="@string/switch_to_video"
         android:src="@drawable/switch_video"
         android:onClick="clickedSwitchVideo"
-        />
+        />-->
 
-    <ImageButton
+    <!--<ImageButton
         android:id="@+id/switch_camera"
         android:layout_width="50dp"
         android:layout_height="50dp"
@@ -152,7 +195,7 @@
         android:contentDescription="@string/switch_to_front_camera"
         android:src="@drawable/switch_camera"
         android:onClick="clickedSwitchCamera"
-        />
+        />-->
 
     <ImageButton
         android:id="@+id/audio_control"
@@ -163,6 +206,7 @@
         android:contentDescription="@string/audio_control_start"
         android:src="@drawable/ic_mic_white_48dp"
         android:onClick="clickedAudioControl"
+        android:visibility="gone"
         />
 
     <!-- should be at left-most -->
@@ -198,6 +242,7 @@
         android:layout_centerVertical="true"
         android:orientation="vertical"
         android:background="@color/seekbar_background"
+        android:visibility="gone"
         >
 
         <RelativeLayout
@@ -205,6 +250,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:visibility="gone"
             >
 
             <TextView
@@ -234,6 +280,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:visibility="gone"
             >
 
             <TextView
@@ -286,6 +333,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:visibility="gone"
             >
 
             <TextView
@@ -330,6 +378,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:visibility="gone"
             >
 
             <TextView
@@ -354,13 +403,6 @@
     </LinearLayout>
 
     <FrameLayout
-        android:id="@+id/prefs_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_centerInParent="true"
-        />
-    
-    <FrameLayout
         android:id="@+id/locker"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -378,6 +420,8 @@
         android:id="@+id/hide_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:visibility="gone"
         />
     
 </RelativeLayout>

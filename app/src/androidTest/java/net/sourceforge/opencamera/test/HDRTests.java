@@ -13,6 +13,8 @@ public class HDRTests {
 	public static Test suite() {
 		TestSuite suite = new TestSuite(MainTests.class.getName());
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testDROZero"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testDRODark0"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testDRODark1"));
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR1"));
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR2"));
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR3"));
@@ -55,7 +57,15 @@ public class HDRTests {
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR40"));
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR40Exponential"));
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR40Filmic"));
-		// don't run testHDR41 or testHDR42 yet
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR41"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR42"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR43"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testHDR44"));
+		// don't include testHDR45, this is tested as part of HDRNTests
+		// don't include testHDR46, this is tested as part of HDRNTests
+		// don't include testHDR47, this is tested as part of HDRNTests
+		// don't include testHDR48, this is tested as part of HDRNTests
+		// don't include testHDR49, this is tested as part of HDRNTests
         return suite;
     }
 }

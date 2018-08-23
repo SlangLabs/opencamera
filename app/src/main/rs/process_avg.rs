@@ -27,8 +27,20 @@ float3 __attribute__((kernel)) avg_f(float3 pixel_avg_f, uint32_t x, uint32_t y)
     {
         // temporal merging
         //const float C = 32.0f*32.0f;
+
+        // diff based on rgb
         float3 diff = pixel_avg_f - pixel_new_f;
         float L = dot(diff, diff);
+
+        // diff based on luminance
+        /*float value_avg = fmax(pixel_avg_f.r, pixel_avg_f.g);
+        value_avg = fmax(value_avg, pixel_avg_f.b);
+        float value_new = fmax(pixel_new_f.r, pixel_new_f.g);
+        value_new = fmax(value_new, pixel_new_f.b);
+        float diff = value_avg - value_new;
+        float L = 3.0f*diff*diff;*/
+        //L = 0.0f; // test no wiener filter
+
         /*if( L > C ) {
             // error too large, so no contribution for new image pixel
             return pixel_avg_f;
@@ -43,6 +55,7 @@ float3 __attribute__((kernel)) avg_f(float3 pixel_avg_f, uint32_t x, uint32_t y)
     out.r = (uchar)clamp(pixel_avg_f.r+0.5f, 0.0f, 255.0f);
     out.g = (uchar)clamp(pixel_avg_f.g+0.5f, 0.0f, 255.0f);
     out.b = (uchar)clamp(pixel_avg_f.b+0.5f, 0.0f, 255.0f);
+    out.a = 255;
 
 	return out;*/
 	return pixel_avg_f;
@@ -52,6 +65,10 @@ float3 __attribute__((kernel)) avg(uchar4 pixel_avg, uint32_t x, uint32_t y) {
     float3 pixel_avg_f = convert_float3(pixel_avg.rgb);
     return avg_f(pixel_avg_f, x, y);
 }
+
+/*float3 __attribute__((kernel)) convert_to_f(uchar4 pixel_avg, uint32_t x, uint32_t y) {
+    return convert_float3(pixel_avg.rgb);
+}*/
 
 rs_allocation bitmap1;
 rs_allocation bitmap2;
@@ -107,9 +124,7 @@ uchar4 __attribute__((kernel)) avg_multi(uchar4 in, uint32_t x, uint32_t y) {
     out.r = (uchar)clamp(result.r+0.5f, 0.0f, 255.0f);
     out.g = (uchar)clamp(result.g+0.5f, 0.0f, 255.0f);
     out.b = (uchar)clamp(result.b+0.5f, 0.0f, 255.0f);
-    /*out.r = 255;
-    out.g = 0;
-    out.b = 255;*/
+    out.a = 255;
 
 	return out;
 }

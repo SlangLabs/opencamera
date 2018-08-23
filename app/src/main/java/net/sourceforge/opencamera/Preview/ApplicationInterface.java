@@ -7,13 +7,12 @@ import java.util.List;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.hardware.camera2.DngCreator;
 import android.location.Location;
-import android.media.CamcorderProfile;
-import android.media.Image;
 import android.net.Uri;
 import android.util.Pair;
 import android.view.MotionEvent;
+
+import net.sourceforge.opencamera.CameraController.RawImage;
 
 /** Provides communication between the Preview and the rest of the application
  *  - so in theory one can drop the Preview/ (and CameraController/) classes
@@ -52,6 +51,7 @@ public interface ApplicationInterface {
 	String getColorEffectPref(); // "node" for default (strings correspond to Android's color effect constants in android.hardware.Camera.Parameters)
 	String getWhiteBalancePref(); // "auto" for default (strings correspond to Android's white balance constants in android.hardware.Camera.Parameters)
 	int getWhiteBalanceTemperaturePref();
+	String getAntiBandingPref(); // "auto" for default (strings correspond to Android's antibanding constants in android.hardware.Camera.Parameters)
 	String getISOPref(); // "auto" for auto-ISO, otherwise a numerical value; see documentation for Preview.supportsISORange().
 	int getExposureCompensationPref(); // 0 for default
 	Pair<Integer, Integer> getCameraResolutionPref(); // return null to let Preview choose size
@@ -61,7 +61,10 @@ public interface ApplicationInterface {
 	boolean getVideoStabilizationPref(); // whether to use video stabilization for video
 	boolean getForce4KPref(); // whether to force 4K mode - experimental, only really available for some devices that allow 4K recording but don't return it as an available resolution - not recommended for most uses
 	String getVideoBitratePref(); // return "default" to let Preview choose
-	String getVideoFPSPref(); // return "default" to let Preview choose
+	String getVideoFPSPref(); // return "default" to let Preview choose; if getVideoCaptureRateFactor() returns a value other than 1.0, this is the capture fps; the resultant video's fps will be getVideoFPSPref()*getVideoCaptureRateFactor()
+    float getVideoCaptureRateFactor(); // return 1.0f for standard operation, less than 1.0 for slow motion, more than 1.0 for timelapse; consider using a higher fps for slow motion, see getVideoFPSPref()
+	boolean useVideoLogProfile(); // whether to use a log profile for video mode
+	float getVideoLogProfileStrength(); // strength of the log profile for video mode, if useVideoLogProfile() returns true
 	long getVideoMaxDurationPref(); // time in ms after which to automatically stop video recording (return 0 for off)
 	int getVideoRestartTimesPref(); // number of times to restart video recording after hitting max duration (return 0 for never auto-restarting)
 	VideoMaxFileSize getVideoMaxFileSizePref() throws NoFreeStorageException; // see VideoMaxFileSize class for details
@@ -86,6 +89,7 @@ public interface ApplicationInterface {
 	String getRecordAudioSourcePref(); // "audio_src_camcorder" is recommended, but other options are: "audio_src_mic", "audio_src_default", "audio_src_voice_communication"; see corresponding values in android.media.MediaRecorder.AudioSource
 	int getZoomPref(); // index into Preview.getSupportedZoomRatios() array (each entry is the zoom factor, scaled by 100; array is sorted from min to max zoom)
 	double getCalibratedLevelAngle(); // set to non-zero to calibrate the accelerometer used for the level angles
+	boolean canTakeNewPhoto(); // whether taking new photos is allowed (e.g., can return false if queue for processing images would become full)
 	// Camera2 only modes:
 	long getExposureTimePref(); // only called if getISOPref() is not "default"
 	float getFocusDistancePref();
@@ -93,10 +97,18 @@ public interface ApplicationInterface {
     int getExpoBracketingNImagesPref(); // how many images to take for exposure bracketing
     double getExpoBracketingStopsPref(); // stops per image for exposure bracketing
 	boolean getOptimiseAEForDROPref(); // see CameraController doc for setOptimiseAEForDRO().
-	boolean isCameraBurstPref(); // whether to shoot the camera in burst mode (n.b., not the same as the "auto-repeat" burst)
-	boolean isRawPref(); // whether to enable RAW photos
+	boolean isCameraBurstPref(); // whether to shoot the camera in burst mode (n.b., not the same as the "auto-repeat" mode)
+	int getBurstNImages(); // only relevant if isCameraBurstPref() returns true; see CameraController doc for setBurstNImages().
+	boolean getBurstForNoiseReduction(); // only relevant if isCameraBurstPref() returns true; see CameraController doc for setBurstForNoiseReduction().
+	enum RawPref {
+		RAWPREF_JPEG_ONLY, // JPEG only
+		RAWPREF_JPEG_DNG // JPEG and RAW (DNG)
+	}
+	RawPref getRawPref(); // whether to enable RAW photos
+	int getMaxRawImages(); // see documentation of CameraController.setRaw(), corresponds to max_raw_images
 	boolean useCamera2FakeFlash(); // whether to enable CameraController.setUseCamera2FakeFlash() for Camera2 API
 	boolean useCamera2FastBurst(); // whether to enable Camera2's captureBurst() for faster taking of expo-bracketing photos (generally should be true, but some devices have problems with captureBurst())
+	boolean usePhotoVideoRecording(); // whether to enable support for taking photos when recording video (if not supported, this won't be called)
 
 	// for testing purposes:
 	boolean isTestAlwaysFocus(); // if true, pretend autofocus always successful
@@ -113,12 +125,12 @@ public interface ApplicationInterface {
 	void onPhotoError(); // callback for failing to take a photo
 	void onVideoInfo(int what, int extra); // callback for info when recording video (see MediaRecorder.OnInfoListener)
 	void onVideoError(int what, int extra); // callback for errors when recording video (see MediaRecorder.OnErrorListener)
-	void onVideoRecordStartError(CamcorderProfile profile); // callback for video recording failing to start
-	void onVideoRecordStopError(CamcorderProfile profile); // callback for video recording being corrupted
+	void onVideoRecordStartError(VideoProfile profile); // callback for video recording failing to start
+	void onVideoRecordStopError(VideoProfile profile); // callback for video recording being corrupted
 	void onFailedReconnectError(); // failed to reconnect camera after stopping video recording
 	void onFailedCreateVideoFileError(); // callback if unable to create file for recording video
 	void hasPausedPreview(boolean paused); // called when the preview is paused or unpaused (due to getPausePreviewPref())
-	void cameraInOperation(boolean in_operation); // called when the camera starts/stops being operation (taking photos or recording video, including if preview is paused after taking a photo), use to disable GUI elements during camera operation
+	void cameraInOperation(boolean in_operation, boolean is_video); // called when the camera starts/stops being operation (taking photos or recording video, including if preview is paused after taking a photo), use to disable GUI elements during camera operation
 	void turnFrontScreenFlashOn(); // called when front-screen "flash" required (for modes flash_frontscreen_auto, flash_frontscreen_on); the application should light up the screen, until cameraInOperation(false) is called
 	void cameraClosed();
 	void timerBeep(long remaining_time); // n.b., called once per second on timer countdown - so application can beep, or do whatever it likes
@@ -158,7 +170,7 @@ public interface ApplicationInterface {
 	void onDrawPreview(Canvas canvas);
 	boolean onPictureTaken(byte [] data, Date current_date);
 	boolean onBurstPictureTaken(List<byte []> images, Date current_date);
-	boolean onRawPictureTaken(DngCreator dngCreator, Image image, Date current_date);
+	boolean onRawPictureTaken(RawImage raw_image, Date current_date);
 	void onCaptureStarted(); // called immediately before we start capturing the picture
 	void onPictureCompleted(); // called after all picture callbacks have been called and returned
 	void onContinuousFocusMove(boolean start); // called when focusing starts/stop in continuous picture mode (in photo mode only)

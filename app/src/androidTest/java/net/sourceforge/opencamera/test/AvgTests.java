@@ -24,6 +24,21 @@ public class AvgTests {
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg10"));
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg11"));
 		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg12"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg13"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg14"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg15"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg16"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg17"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg18"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg19"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg20"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg21"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg22"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg23"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg24"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg25"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg26"));
+		suite.addTest(TestSuite.createTest(MainActivityTest.class, "testAvg27"));
         return suite;
     }
 }
